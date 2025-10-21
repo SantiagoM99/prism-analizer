@@ -1,0 +1,39 @@
+# Variables de entorno con API keys
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Resultados generados
+entregas/*/resultados/
+
+# Logs
+*.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebooks (si los usas)
+.ipynb_checkpoints
+
+# Archivos temporales
+*.tmp
+*.bak
+
+entregas
