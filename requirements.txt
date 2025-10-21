@@ -1,0 +1,9 @@
+# Core dependencies
+google-generativeai>=0.3.0  # SDK oficial de Google para Gemini
+
+# Utilidades
+python-dotenv>=1.0.0       # Gestión de variables de entorno
+tqdm>=4.66.0               # Progress bars para feedback visual
+
+# Opcional pero recomendado
+pandas>=2.0.0              # Para análisis adicional de datos (opcional)
