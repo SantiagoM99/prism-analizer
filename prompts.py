@@ -326,3 +326,147 @@ El reporte debe seguir esta estructura:
 7. Genera SOLO el Markdown, sin meta-comentarios
 
 Genera el reporte ahora:"""
+
+def build_grades_analysis_prompt(datos: Dict) -> str:
+    """
+    Construye el prompt para generar análisis de patrones de error y grupos en riesgo.
+    
+    Args:
+        datos: Diccionario con estadísticas, análisis y ejemplos
+        
+    Returns:
+        Prompt para generar el reporte de análisis educativo
+    """
+    import json
+    datos_json = json.dumps(datos, indent=2, ensure_ascii=False)
+    
+    return f"""Eres un asistente experto en análisis educativo y diagnóstico de dificultades de aprendizaje.
+
+# DATOS DEL ANÁLISIS
+
+{datos_json}
+
+# TU TAREA
+
+Genera un reporte diagnóstico en formato Markdown que identifique:
+1. **Errores comunes** y patrones de fracaso en los proyectos
+2. **Retroalimentaciones frecuentes** de los tutores
+3. **Grupos en riesgo** con problemas graves en las entregas
+4. **Áreas críticas** donde más estudiantes tienen dificultades
+
+# ESTRUCTURA DEL REPORTE
+```markdown
+# Análisis Diagnóstico: Patrones de Error y Grupos en Riesgo
+
+## Resumen Ejecutivo
+[2-3 párrafos con los hallazgos críticos y grupos que requieren atención inmediata]
+
+## Panorama General
+
+### Estadísticas de Rendimiento
+| Métrica | Valor |
+|---------|-------|
+| Promedio general | [X] |
+| Calificación máxima | [X] |
+| Calificación mínima | [X] |
+| % Proyectos aprobados (≥60) | [X]% |
+| % Proyectos en riesgo (<60) | [X]% |
+
+
+## Errores Comunes y Patrones de Fracaso
+
+### Top 5 Debilidades Más Frecuentes
+[Lista ordenada por frecuencia con % de proyectos afectados]
+
+1. **[Debilidad #1]** (Aparece en X% de proyectos)
+   - Descripción del problema
+   - Impacto en la calificación
+   - Ejemplos concretos
+
+2. **[Debilidad #2]** (Aparece en X% de proyectos)
+   ...
+
+### Errores Críticos que Causan Reprobación
+[Debilidades que aparecen consistentemente en proyectos con nota <60]
+
+### Problemas Técnicos vs. Problemas Conceptuales
+[Clasificación de los errores por tipo]
+
+## Análisis de Retroalimentación de Tutores
+
+### Comentarios Más Frecuentes
+[Tabla con comentarios recurrentes y frecuencia]
+
+| Comentario/Tema | Frecuencia | Contexto Típico |
+|-----------------|------------|-----------------|
+| [Comentario 1] | X veces | [Calificación promedio] |
+| [Comentario 2] | X veces | [Calificación promedio] |
+
+### Criterios de Evaluación Más Problemáticos
+[Aspectos donde más estudiantes pierden puntos]
+
+### Tono de las Retroalimentaciones
+[Análisis cualitativo: constructivo vs. crítico, específico vs. vago]
+
+## Grupos en Riesgo Alto
+
+### Grupos con Calificación <60
+[Análisis detallado de cada grupo en riesgo]
+
+**Grupo [ID]** - Calificación: [X]
+- **Principales debilidades:** [Lista]
+- **Comentarios del tutor:** [Resumen]
+- **Severidad:** 🔴 Alta / 🟡 Media / 🟢 Baja
+
+### Grupos con Entregas Incompletas o Deficientes
+[Identificar proyectos que muestran falta de esfuerzo o comprensión básica]
+
+### Señales de Alerta Temprana
+[Patrones que predicen bajo rendimiento]
+
+## Análisis por Área de Conocimiento
+
+### Áreas con Mayor Tasa de Error
+1. **[Área técnica/conceptual]**
+   - % de estudiantes con dificultad
+   - Errores típicos
+   - Nivel de severidad
+
+### Áreas Mejor Dominadas
+[Para contraste y contexto]
+
+## Patrones de Rendimiento
+
+### Características de Proyectos Exitosos (>80)
+- Fortalezas comunes
+- Enfoques efectivos
+- Nivel de completitud
+
+### Características de Proyectos en Riesgo (<60)
+- Debilidades recurrentes
+- Problemas de comprensión
+- Vacíos en el conocimiento
+
+
+## Conclusiones
+
+### Hallazgos Clave
+[Resumen de los 3-5 insights más importantes sobre errores comunes y grupos en riesgo]
+
+### Áreas de Atención Prioritaria
+[Los 3 problemas más críticos identificados que requieren intervención]
+```
+
+# INSTRUCCIONES ESPECÍFICAS
+
+1. **Prioriza la identificación de problemas** sobre celebrar éxitos
+2. **Sé específico:** Cita grupos, calificaciones y comentarios concretos
+3. **Usa datos cuantitativos:** Porcentajes, promedios, frecuencias
+4. **Identifica causas raíz:** No solo síntomas, sino problemas subyacentes
+5. **Clasifica por severidad:** 🔴 Crítico, 🟡 Moderado, 🟢 Leve
+6. **Tono profesional pero directo:** Sin suavizar problemas graves
+7. **Enfócate en patrones:** No casos aislados
+8. **Incluye ejemplos textuales** de comentarios de tutores cuando sean relevantes
+9. **Genera SOLO el Markdown**, sin meta-comentarios ni explicaciones adicionales
+
+Genera el reporte ahora:"""

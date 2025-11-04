@@ -5,7 +5,8 @@ Este es el punto de entrada principal que orquesta todo el proceso:
 1. Carga configuración
 2. Ejecuta Fase 1 (extracción individual)
 3. Ejecuta Fase 2 (consolidación y análisis)
-4. Genera reportes finales
+4. Ejecuta Fase 3 (análisis de calificaciones) - OPCIONAL si hay CSV
+5. Genera reportes finales
 """
 
 import os
@@ -15,7 +16,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import google.generativeai as genai
 
-from config import get_config_for_entrega, EntregaConfig
+from config import get_config, EntregaConfig
 from utils import (
     setup_logging,
     read_markdown_file,
@@ -24,6 +25,7 @@ from utils import (
 )
 from extractor import ProyectoExtractor
 from consolidator import ProyectoConsolidator
+from grades_analyzer import GradesAnalyzer
 
 
 def initialize_gemini_api() -> bool:
@@ -46,7 +48,7 @@ def initialize_gemini_api() -> bool:
     
     try:
         genai.configure(api_key=api_key)
-        print("API de Gemini configurada exitosamente")
+        print("✓ API de Gemini configurada exitosamente")
         return True
     except Exception as e:
         print(f"ERROR configurando API de Gemini: {e}")
@@ -76,7 +78,10 @@ def run_analysis(config: EntregaConfig) -> bool:
     logger.info(f"  - Proyectos: {config.proyectos_dir}")
     logger.info(f"  - Output: {config.output_dir}")
     logger.info(f"  - Modelo: {config.model_name}")
-    logger.info(f"  - Temperatura: {config.temperature}\n")
+    logger.info(f"  - Temperatura: {config.temperature}")
+    if config.calificaciones_csv_path:
+        logger.info(f"  - Calificaciones CSV: {config.calificaciones_csv_path}")
+    logger.info("")
     
     try:
         # 1. Cargar enunciado y rúbrica
@@ -133,7 +138,29 @@ def run_analysis(config: EntregaConfig) -> bool:
             output_dir=config.output_dir / "fase2_consolidado"
         )
         
-        # 5. Generar resumen de ejecución
+        # 5. FASE 3: Análisis de calificaciones (OPCIONAL)
+        fase3_success = False
+        if config.calificaciones_csv_path and config.calificaciones_csv_path.exists():
+            logger.info("\n" + "="*70)
+            logger.info("FASE 3: ANÁLISIS DE CALIFICACIONES")
+            logger.info("="*70 + "\n")
+            
+            grades_analyzer = GradesAnalyzer(
+                model_name=config.model_name,
+                temperature=config.temperature + 0.1
+            )
+            
+            fase3_success = grades_analyzer.run_full_grades_analysis(
+                csv_path=config.calificaciones_csv_path,
+                extracciones=extracciones,
+                output_dir=config.output_dir / "fase3_calificaciones"
+            )
+        else:
+            if config.calificaciones_csv_path:
+                logger.warning(f"Archivo de calificaciones no encontrado: {config.calificaciones_csv_path}")
+            logger.info("Fase 3 (Calificaciones) omitida - no hay CSV configurado")
+        
+        # 6. Generar resumen de ejecución
         summary = create_results_summary(
             output_dir=config.output_dir,
             num_proyectos=len(proyecto_files),
@@ -141,7 +168,11 @@ def run_analysis(config: EntregaConfig) -> bool:
             fase2_success=fase2_success
         )
         
-        # 6. Reporte final
+        # Añadir info de fase 3 al resumen
+        if config.calificaciones_csv_path:
+            summary["fase3_completada"] = fase3_success
+        
+        # 7. Reporte final
         logger.info("\n" + "="*70)
         logger.info("ANÁLISIS COMPLETADO")
         logger.info("="*70)
@@ -149,14 +180,30 @@ def run_analysis(config: EntregaConfig) -> bool:
         logger.info(f"  ✓ Proyectos procesados: {exitosos}/{len(proyecto_files)}")
         logger.info(f"  ✓ Tasa de éxito: {summary['fase1_tasa_exito']}")
         logger.info(f"  ✓ Consolidación: {'✓ Exitosa' if fase2_success else '✗ Fallida'}")
+        
+        if config.calificaciones_csv_path:
+            logger.info(f"  ✓ Análisis de calificaciones: {'✓ Exitoso' if fase3_success else '✗ Fallido/Omitido'}")
+        
         logger.info(f"\nArchivos generados:")
         logger.info(f"  - Extracciones individuales: {config.output_dir / 'fase1_extracciones'}")
         logger.info(f"  - Análisis consolidado: {config.output_dir / 'fase2_consolidado'}")
+        
+        if fase3_success:
+            logger.info(f"  - Análisis de calificaciones: {config.output_dir / 'fase3_calificaciones'}")
+        
         logger.info(f"  - Logs: {config.output_dir / 'logs'}")
+        
         logger.info(f"\nArchivos principales:")
-        logger.info(f"  CSV: {config.output_dir / 'fase2_consolidado' / 'decisiones_consolidadas.csv'}")
-        logger.info(f"  Reporte: {config.output_dir / 'fase2_consolidado' / 'reporte_ejecutivo.md'}")
-        logger.info(f"  JSON: {config.output_dir / 'fase2_consolidado' / 'analisis_consolidado.json'}")
+        logger.info(f"  CSV Decisiones: {config.output_dir / 'fase2_consolidado' / 'decisiones_consolidadas.csv'}")
+        logger.info(f"  Reporte Consolidado: {config.output_dir / 'fase2_consolidado' / 'reporte_ejecutivo.md'}")
+        logger.info(f"  JSON Consolidado: {config.output_dir / 'fase2_consolidado' / 'analisis_consolidado.json'}")
+        
+        if fase3_success:
+            logger.info(f"\n  Archivos de calificaciones:")
+            logger.info(f"    - Resumen: {config.output_dir / 'fase3_calificaciones' / 'resumen_calificaciones.md'}")
+            logger.info(f"    - Comparativo: {config.output_dir / 'fase3_calificaciones' / 'reporte_comparativo.md'}")
+            logger.info(f"    - JSON Enriquecido: {config.output_dir / 'fase3_calificaciones' / 'extracciones_enriquecidas.json'}")
+        
         logger.info("="*70 + "\n")
         
         return True
@@ -193,10 +240,14 @@ def main():
     
     # 3. Cargar configuración
     try:
-        config = get_config_for_entrega(numero_entrega)
+        config = get_config(numero_entrega)
     except ValueError as e:
         print(f"ERROR: {e}")
         print("\nAsegúrate de haber configurado la entrega en config.py")
+        sys.exit(1)
+    except FileNotFoundError as e:
+        print(f"ERROR: {e}")
+        print("\nVerifica que todos los archivos necesarios existan")
         sys.exit(1)
     
     # 4. Ejecutar análisis
